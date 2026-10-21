@@ -1,0 +1,172 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 244 246 250;
+  --panel: 255 255 255;
+  --raised: 236 239 245;
+  --line: 218 223 233;
+  --fg: 22 26 36;
+  --muted: 88 96 114;
+  --faint: 140 148 166;
+}
+
+.dark {
+  --bg: 15 17 23;
+  --panel: 26 29 39;
+  --raised: 35 39 52;
+  --line: 46 51 66;
+  --fg: 230 233 241;
+  --muted: 160 168 186;
+  --faint: 108 116 136;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-bg text-fg font-sans antialiased;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--line)) transparent;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 h-8 text-[13px] font-medium transition-all duration-150 select-none disabled:opacity-40 disabled:pointer-events-none active:scale-[0.97];
+  }
+  .btn-primary {
+    @apply btn bg-brand-500 text-white hover:bg-brand-600 shadow-[0_0_0_1px_rgb(79_142_247/0.4),0_6px_16px_-6px_rgb(79_142_247/0.7)];
+  }
+  .btn-ghost {
+    @apply btn text-muted hover:text-fg hover:bg-raised;
+  }
+  .btn-outline {
+    @apply btn border border-line text-fg hover:bg-raised hover:border-faint/60;
+  }
+  .btn-danger {
+    @apply btn bg-bad-500/15 text-bad-400 hover:bg-bad-500/25;
+  }
+  .icon-btn {
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-md text-muted hover:text-fg hover:bg-raised transition-colors disabled:opacity-40 disabled:pointer-events-none;
+  }
+  .input {
+    @apply w-full h-8 rounded-md bg-bg border border-line px-2.5 text-[13px] text-fg placeholder:text-faint outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20;
+  }
+  .label {
+    @apply text-[11px] font-medium uppercase tracking-wider text-faint;
+  }
+  .card {
+    @apply rounded-xl border border-line bg-panel;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium;
+  }
+}
+
+.view-enter {
+  animation: view-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fade-in {
+  animation: fade 180ms ease-out;
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.pop-in {
+  animation: pop 220ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+}
+
+.node-training {
+  animation: node-pulse 1.4s ease-in-out infinite;
+}
+@keyframes node-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--pulse, rgb(79 142 247 / 0.5));
+  }
+  50% {
+    box-shadow: 0 0 0 7px transparent, 0 0 22px 2px var(--pulse, rgb(79 142 247 / 0.35));
+  }
+}
+
+.edge-flow {
+  stroke-dasharray: 6 6;
+  animation: dash 0.6s linear infinite;
+}
+@keyframes dash {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.18), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.react-flow {
+  --xy-background-color: transparent;
+  --xy-minimap-background-color: rgb(var(--panel));
+  --xy-controls-button-background-color: rgb(var(--panel));
+  --xy-controls-button-background-color-hover: rgb(var(--raised));
+  --xy-controls-button-color: rgb(var(--muted));
+  --xy-controls-button-border-color: rgb(var(--line));
+  --xy-edge-stroke: rgb(var(--faint));
+  --xy-edge-stroke-selected: #4f8ef7;
+  --xy-connectionline-stroke: #4f8ef7;
+  --xy-handle-background-color: rgb(var(--panel));
+  --xy-handle-border-color: rgb(var(--faint));
+}
+.react-flow__controls {
+  @apply rounded-lg overflow-hidden border border-line shadow-node;
+}
+.react-flow__minimap {
+  @apply rounded-lg overflow-hidden border border-line;
+}
+.react-flow__attribution {
+  display: none;
+}
