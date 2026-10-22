@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowRight, Sparkles, X } from 'lucide-react';
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useStore } from '../../store/useStore';
 
@@ -19,7 +19,13 @@ export function Walkthrough() {
   const setStep = useStore((s) => s.setWalkthrough);
   const setModal = useStore((s) => s.setModal);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const [cardH, setCardH] = useState(200);
+  const cardRef = useRef<HTMLDivElement>(null);
   const cur = step === null ? null : STEPS[step];
+
+  useLayoutEffect(() => {
+    if (cardRef.current) setCardH(cardRef.current.offsetHeight);
+  }, [step, rect]);
 
   useLayoutEffect(() => {
     if (!cur?.target) return setRect(null);
@@ -50,14 +56,21 @@ export function Walkthrough() {
   const last = step === STEPS.length - 1;
 
   const pad = 6;
-  const card = { w: 340, h: 200 };
+  const card = { w: 340, h: cardH };
   let pos: React.CSSProperties = { left: '50%', top: '50%', transform: 'translate(-50%,-50%)' };
   if (rect) {
-    const vw = window.innerWidth, vh = window.innerHeight;
-    if (rect.right + card.w + 24 < vw) pos = { left: rect.right + 16, top: Math.min(vh - card.h - 16, Math.max(16, rect.top + 24)) };
-    else if (rect.left - card.w - 24 > 0) pos = { left: rect.left - card.w - 16, top: Math.min(vh - card.h - 16, Math.max(16, rect.top + 24)) };
-    else if (rect.top - card.h - 24 > 0) pos = { left: Math.min(vw - card.w - 16, Math.max(16, rect.left + rect.width / 2 - card.w / 2)), top: rect.top - card.h - 16 };
-    else pos = { left: Math.min(vw - card.w - 16, Math.max(16, rect.left + rect.width / 2 - card.w / 2)), top: rect.bottom + 16 };
+    const vw = window.innerWidth, vh = window.innerHeight, gap = 16;
+    const centerX = rect.left + rect.width / 2 - card.w / 2;
+    let left: number, top: number;
+    if (rect.right + card.w + gap * 2 < vw) [left, top] = [rect.right + gap, rect.top + 24];
+    else if (rect.left - card.w - gap * 2 > 0) [left, top] = [rect.left - card.w - gap, rect.top + 24];
+    else if (rect.top - card.h - gap * 2 > 0) [left, top] = [centerX, rect.top - card.h - gap];
+    else if (rect.bottom + card.h + gap * 2 < vh) [left, top] = [centerX, rect.bottom + gap];
+    else [left, top] = [rect.right - card.w - gap * 2, rect.bottom - card.h - gap * 2];
+    pos = {
+      left: Math.min(vw - card.w - gap, Math.max(gap, left)),
+      top: Math.min(vh - card.h - gap, Math.max(gap, top)),
+    };
   }
 
   return createPortal(
@@ -70,7 +83,7 @@ export function Walkthrough() {
       ) : (
         <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
       )}
-      <div key={step} className="pop-in absolute rounded-2xl border border-line bg-panel p-5 shadow-pop" style={{ width: card.w, ...pos }}>
+      <div key={step} ref={cardRef} className="pop-in absolute rounded-2xl border border-line bg-panel p-5 shadow-pop" style={{ width: card.w, ...pos }}>
         <div className="mb-2 flex items-center justify-between">
           <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-brand-400"><Sparkles size={12} /> Getting started</span>
           <button className="icon-btn -mr-2 -mt-1 h-7 w-7" onClick={finish} aria-label="Close tour"><X size={14} /></button>
