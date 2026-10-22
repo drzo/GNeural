@@ -211,6 +211,3 @@ export async function recordRun(fromIndex: number, status: 'done' | 'stopped', s
     get().log('warn', 'Could not save this training run to the history', 'history');
   }
 }
-
-
-export { linkUnsavedRuns, recordRun }
