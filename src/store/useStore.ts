@@ -99,6 +99,7 @@ export interface AppState {
   modal: Modal;
   tutorial: TutorialProgress | null;
   rightTab: RightTab;
+  libraryVersion: number;
   config: NetworkConfig;
   logs: LogEntry[];
   training: TrainingState;
@@ -117,6 +118,7 @@ export interface AppState {
   setModal(m: Modal): void;
   setTutorial(t: TutorialProgress | null): void;
   setRightTab(t: RightTab): void;
+  bumpLibrary(): void;
   setName(n: string): void;
   select(id: string | null): void;
 
@@ -180,6 +182,7 @@ export const useStore = create<AppState>()((set, get) => {
     modal: null,
     tutorial: null,
     rightTab: 'inspect',
+    libraryVersion: 0,
     config: { ...defaultConfig(), train: { ...DEFAULT_TRAIN, ...TEMPLATES[0].train } },
     logs: [],
     training: emptyTraining(),
@@ -199,6 +202,7 @@ export const useStore = create<AppState>()((set, get) => {
     setModal: (modal) => set({ modal }),
     setTutorial: (tutorial) => set({ tutorial }),
     setRightTab: (rightTab) => set({ rightTab }),
+    bumpLibrary: () => set((s) => ({ libraryVersion: s.libraryVersion + 1 })),
     setName: (networkName) => set({ networkName, dirty: true }),
     select: (selectedId) => set({ selectedId }),
 

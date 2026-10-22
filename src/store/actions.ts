@@ -5,7 +5,8 @@ import { TrainingRun } from '../engine/trainer';
 import type { Sample } from '../engine/types';
 import { applyGneuralWeights, gneuralCompatibility, runGneural, toGneuralWeights } from '../gd/bridge';
 import type { Sample as GdSample } from '../gd/protocol';
-import { supabase } from '../lib/supabase';
+import { requireDb } from '../lib/supabase';
+import { recordRun } from './library';
 import type { LayerNode } from './graph';
 import { computeNetwork, type NetworkInfo } from './useNetwork';
 import { defaultConfig, useStore, type NetworkConfig } from './useStore';
@@ -75,8 +76,9 @@ export function startTraining() {
   const startEpoch = s.training.history.length ? s.training.history[s.training.history.length - 1].epoch : 0;
   s.setTraining({ status: 'running', engine: cfg.engine, totalEpochs: startEpoch + cfg.epochs, batch: 0, batches: 0 });
   s.setView('training');
+  const runStart = { index: s.training.history.length, at: performance.now() };
 
-  if (cfg.engine === 'gneural') return trainWithGneural(net, model, train, val, startEpoch);
+  if (cfg.engine === 'gneural') return trainWithGneural(net, model, train, val, startEpoch, runStart);
 
   s.log('info', `Training on ${train.length} samples (${val.length} validation) for ${cfg.epochs} epochs with ${cfg.optimizer.toUpperCase()}`, 'trainer');
   const run = new TrainingRun(
@@ -99,13 +101,14 @@ export function startTraining() {
     get().setRun(null);
     if (result === 'done') get().log('success', 'Training complete', 'trainer');
     if (result === 'stopped') get().log('warn', 'Training stopped', 'trainer');
+    if (result === 'done' || result === 'stopped') void recordRun(runStart.index, result, runStart.at);
   });
 }
 
 const toGd = (samples: Sample[]): GdSample[] =>
   samples.map((s) => ({ input: Array.from(s.x), output: Array.from(s.y) }));
 
-function trainWithGneural(net: NetworkInfo, model: Model, train: Sample[], val: Sample[], startEpoch: number) {
+function trainWithGneural(net: NetworkInfo, model: Model, train: Sample[], val: Sample[], startEpoch: number, runStart: { index: number; at: number }) {
   const s = get();
   const compat = gneuralCompatibility(net.chain, net.analysis);
   if (!compat.ok) {
@@ -139,10 +142,12 @@ function trainWithGneural(net: NetworkInfo, model: Model, train: Sample[], val: 
       }
     },
   );
-  s.setRun({ stop: () => { job.cancel(); get().log('warn', 'Gneural training stopped', 'gneural'); } });
+  let stopped = false;
+  s.setRun({ stop: () => { stopped = true; job.cancel(); get().log('warn', 'Gneural training stopped', 'gneural'); } });
   job.done.then(() => {
     get().setTraining({ status: 'idle' });
     get().setRun(null);
+    void recordRun(runStart.index, stopped ? 'stopped' : 'done', runStart.at);
   });
 }
 
@@ -192,11 +197,6 @@ export interface NetworkRow {
 interface SavedGraph {
   nodes: LayerNode[];
   edges: Edge[];
-}
-
-function requireDb() {
-  if (!supabase) throw new Error('Cloud storage is not configured');
-  return supabase;
 }
 
 export async function saveNetwork(asNew = false) {

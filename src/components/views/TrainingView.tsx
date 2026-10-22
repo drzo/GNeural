@@ -8,6 +8,7 @@ import { useNetwork } from '../../store/useNetwork';
 import { useStore } from '../../store/useStore';
 import { CHART, ChartCard, Legend, axisProps, tooltipProps } from '../ui/charts';
 import { Empty, Stat } from '../ui/primitives';
+import { RunHistory } from './training/RunHistory';
 
 function Progress({ label, value, max, tone }: { label: string; value: number; max: number; tone: string }) {
   const p = max ? Math.min(1, value / max) : 0;
@@ -49,12 +50,17 @@ export function TrainingView() {
 
   if (!t.history.length && t.status === 'idle') {
     return (
-      <Empty
-        icon={<ChartLine size={22} />}
-        title="No training yet"
-        body="Training charts appear here as soon as you start. Loss should go down; accuracy should go up."
-        action={<button className="btn-primary" onClick={startTraining} disabled={!net.valid}><Play size={14} fill="currentColor" /> Start training</button>}
-      />
+      <div className="flex h-full flex-col overflow-y-auto p-6">
+        <div className="min-h-[320px] flex-1">
+          <Empty
+            icon={<ChartLine size={22} />}
+            title="No training yet"
+            body="Training charts appear here as soon as you start. Loss should go down; accuracy should go up."
+            action={<button className="btn-primary" onClick={startTraining} disabled={!net.valid}><Play size={14} fill="currentColor" /> Start training</button>}
+          />
+        </div>
+        <RunHistory />
+      </div>
     );
   }
 
@@ -166,6 +172,10 @@ export function TrainingView() {
             </div>
           </ChartCard>
         )}
+      </div>
+
+      <div className="mt-4">
+        <RunHistory />
       </div>
     </div>
   );

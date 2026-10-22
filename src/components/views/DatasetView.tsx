@@ -1,16 +1,16 @@
-import { Database, FileUp, Image, ListOrdered, Table2, Type } from 'lucide-react';
-import { useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { Database, Image, ListOrdered, Table2, Type } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { BUILTIN_DATASETS, parseCsv, splitDataset, type DataKind } from '../../data/datasets';
+import { BUILTIN_DATASETS, splitDataset, type DataKind } from '../../data/datasets';
 import { useNetwork } from '../../store/useNetwork';
 import { useStore } from '../../store/useStore';
 import { CHART, ChartCard, axisProps, tooltipProps } from '../ui/charts';
 import { Heatmap } from '../ui/Heatmap';
 import { Empty, Toggle } from '../ui/primitives';
+import { FileLibrary } from './dataset/FileLibrary';
 
 const KIND_ICON: Record<DataKind, typeof Image> = { image: Image, sequence: ListOrdered, text: Type, tabular: Table2 };
 const PALETTE = [CHART.blue, CHART.green, CHART.yellow, '#1fc7b6', '#e74c3c', '#f06292', '#8bc34a', '#ff9800', '#4dd0e1', '#a1887f'];
-const MAX_CSV = 2 * 1024 * 1024;
 
 function Sparkline({ x }: { x: Float32Array }) {
   const pts = Array.from(x, (v, i) => `${(i / Math.max(1, x.length - 1)) * 100},${30 - v * 24}`).join(' ');
@@ -28,7 +28,6 @@ export function DatasetView() {
   const setConfig = useStore((s) => s.setConfig);
   const log = useStore((s) => s.log);
   const running = useStore((s) => s.training.status !== 'idle');
-  const fileRef = useRef<HTMLInputElement>(null);
   const [page, setPage] = useState(0);
   const ds = net.dataset;
 
@@ -44,23 +43,6 @@ export function DatasetView() {
     if (running) return log('warn', 'Stop training before switching datasets', 'dataset');
     setConfig({ datasetId: id });
     setPage(0);
-  };
-
-  const upload = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    if (running) return log('warn', 'Stop training before switching datasets', 'dataset');
-    if (file.size > MAX_CSV) return log('error', 'CSV files are limited to 2 MB', 'dataset');
-    try {
-      const text = await file.text();
-      const parsed = parseCsv(text, file.name);
-      setConfig({ datasetId: 'csv', csv: { text, name: file.name } });
-      setPage(0);
-      log('success', `Loaded ${file.name}: ${parsed.samples.length} rows, ${parsed.inputShape[0]} features, ${parsed.task}`, 'dataset');
-    } catch (err) {
-      log('error', `Could not read ${file.name}: ${(err as Error).message}`, 'dataset');
-    }
   };
 
   const setSplit = (key: 'train' | 'val', v: number) => {
@@ -96,18 +78,7 @@ export function DatasetView() {
           </div>
         </div>
 
-        <div>
-          <div className="label mb-2">Your data</div>
-          <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={upload} />
-          <button onClick={() => fileRef.current?.click()} className={`flex w-full flex-col items-center gap-1.5 rounded-xl border border-dashed px-3 py-5 text-center transition-colors ${config.datasetId === 'csv' ? 'border-brand-500/60 bg-brand-500/10' : 'border-line hover:border-faint hover:bg-raised'}`}>
-            <FileUp size={18} className="text-muted" />
-            <span className="text-[12px] font-medium">{config.csv ? config.csv.name : 'Upload a CSV file'}</span>
-            <span className="text-[11px] text-faint">Numeric columns, last column is the target</span>
-          </button>
-          {config.csv && config.datasetId !== 'csv' && (
-            <button className="btn-ghost mt-1.5 h-7 w-full text-[12px]" onClick={() => choose('csv')}>Use {config.csv.name}</button>
-          )}
-        </div>
+        <FileLibrary onChosen={() => setPage(0)} />
 
         <div data-tour="dataset-splits">
           <div className="label mb-3">Train / validation / test split</div>
