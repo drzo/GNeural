@@ -1,7 +1,9 @@
 import { Database, Image, ListOrdered, Table2, Type } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { BUILTIN_DATASETS, splitDataset, type DataKind } from '../../data/datasets';
+import { compact } from '../../lib/format';
+import { listBuiltinDatasets, type CatalogDataset } from '../../store/library';
 import { useNetwork } from '../../store/useNetwork';
 import { useStore } from '../../store/useStore';
 import { CHART, ChartCard, axisProps, tooltipProps } from '../ui/charts';
@@ -29,7 +31,16 @@ export function DatasetView() {
   const log = useStore((s) => s.log);
   const running = useStore((s) => s.training.status !== 'idle');
   const [page, setPage] = useState(0);
+  const [catalog, setCatalog] = useState<CatalogDataset[]>(() => BUILTIN_DATASETS.map((d) => ({ ...d, sampleCount: null })));
   const ds = net.dataset;
+
+  useEffect(() => {
+    let live = true;
+    listBuiltinDatasets()
+      .then((rows) => live && rows.length && setCatalog(rows))
+      .catch(() => undefined);
+    return () => { live = false; };
+  }, []);
 
   const split = useMemo(() => (ds ? splitDataset(ds, config.splits) : null), [ds, config.splits]);
   const distribution = useMemo(() => {
@@ -62,14 +73,17 @@ export function DatasetView() {
         <div data-tour="dataset-list">
           <div className="label mb-2">Datasets</div>
           <div className="space-y-1.5">
-            {BUILTIN_DATASETS.map((d) => {
+            {catalog.map((d) => {
               const Icon = KIND_ICON[d.kind];
               const active = config.datasetId === d.id;
               return (
                 <button key={d.id} onClick={() => choose(d.id)} className={`flex w-full gap-3 rounded-xl border px-3 py-2.5 text-left transition-all ${active ? 'border-brand-500/60 bg-brand-500/10' : 'border-line hover:border-faint hover:bg-raised'}`}>
                   <Icon size={16} className={`mt-0.5 shrink-0 ${active ? 'text-brand-400' : 'text-muted'}`} />
-                  <div className="min-w-0">
-                    <div className="text-[13px] font-medium">{d.name}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-[13px] font-medium">{d.name}</span>
+                      {d.sampleCount !== null && <span className="shrink-0 font-mono text-[10px] text-faint">{compact(d.sampleCount)}</span>}
+                    </div>
                     <div className="line-clamp-2 text-[11px] leading-snug text-faint">{d.description}</div>
                   </div>
                 </button>

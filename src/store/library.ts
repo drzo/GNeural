@@ -1,4 +1,4 @@
-import { parseCsv } from '../data/datasets';
+import { BUILTIN_DATASETS, parseCsv, type DataKind, type DatasetInfo } from '../data/datasets';
 import { requireDb } from '../lib/supabase';
 import { useStore } from './useStore';
 
@@ -41,6 +41,23 @@ export interface TrainingRunRow {
 function fail(context: string, cause: unknown, message: string): never {
   console.error(context, cause);
   throw new Error(message);
+}
+
+export interface CatalogDataset extends DatasetInfo {
+  sampleCount: number | null;
+}
+
+/** Built-in datasets as described in the database, limited to ones this app can generate. */
+export async function listBuiltinDatasets(): Promise<CatalogDataset[]> {
+  const { data, error } = await requireDb()
+    .from('builtin_datasets')
+    .select('id, name, description, kind, sample_count')
+    .order('sort_order');
+  if (error) fail('list builtin datasets failed', error, 'Could not load the dataset catalog.');
+  const known = new Set(BUILTIN_DATASETS.map((d) => d.id));
+  return (data ?? [])
+    .filter((r) => known.has(r.id))
+    .map((r) => ({ id: r.id, name: r.name, description: r.description, kind: r.kind as DataKind, sampleCount: r.sample_count }));
 }
 
 export async function listDatasetFiles(): Promise<DatasetFile[]> {
