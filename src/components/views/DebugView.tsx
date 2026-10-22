@@ -137,7 +137,7 @@ export function DebugView() {
             <span className="label">Forward pass</span>
             <button className="btn-ghost h-7 px-2 text-[12px]" onClick={() => setSampleIdx(Math.floor(Math.random() * pool.length))} disabled={!pool.length}><Shuffle size={12} /> Sample</button>
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-1" data-tour="debug-controls">
             <button className="btn-outline h-8 flex-1" onClick={() => setCursor(0)} title="Reset to input"><RotateCcw size={13} /></button>
             <button className="btn-outline h-8 flex-1" onClick={() => setCursor((c) => Math.max(0, c - 1))} disabled={cursor === 0} title="Step back"><ChevronLeft size={15} /></button>
             <button className="btn-primary h-8 flex-1" onClick={() => setCursor((c) => Math.min(n - 1, c + 1))} disabled={cursor >= n - 1} title="Step forward"><ChevronRight size={15} /></button>
@@ -145,7 +145,7 @@ export function DebugView() {
           </div>
           <p className="mt-2 text-[11px] text-faint">Click the dot beside a layer to set a breakpoint.</p>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-2">
+        <div className="min-h-0 flex-1 overflow-y-auto p-2" data-tour="debug-layers">
           {net.chain.map((l, i) => {
             const role = i === 0 ? 'input' : i === n - 1 ? 'output' : 'hidden';
             const g = grads?.norms[i];

@@ -1,15 +1,16 @@
 import { Play, SlidersHorizontal } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import { Inspector } from './Inspector';
 import { RunPanel } from './RunPanel';
 
 export function RightPanel() {
   const selectedId = useStore((s) => s.selectedId);
-  const [tab, setTab] = useState<'inspect' | 'run'>('inspect');
+  const tab = useStore((s) => s.rightTab);
+  const setTab = useStore((s) => s.setRightTab);
   useEffect(() => {
     if (selectedId) setTab('inspect');
-  }, [selectedId]);
+  }, [selectedId, setTab]);
 
   return (
     <aside className="flex w-[320px] shrink-0 flex-col border-l border-line bg-panel" data-tour="inspector">
@@ -21,6 +22,7 @@ export function RightPanel() {
           <button
             key={id}
             onClick={() => setTab(id)}
+            data-tour={`${id}-tab`}
             className={`relative flex items-center gap-1.5 px-3 text-[13px] font-medium transition-colors ${tab === id ? 'text-fg' : 'text-faint hover:text-muted'}`}
           >
             <Icon size={13} /> {label}

@@ -58,6 +58,7 @@ export function RunPanel() {
   return (
     <div>
       <Section title={<span className="flex items-center gap-1.5"><Cpu size={12} /> Engine</span>}>
+        <div data-tour="engine">
         <Segmented
           value={cfg.engine}
           onChange={(v) => setTrain({ engine: v })}
@@ -66,6 +67,7 @@ export function RunPanel() {
             { value: 'gneural', label: 'Gneural', title: 'The Gneural library, the same math that runs inside Geometry Dash' },
           ]}
         />
+        </div>
         <div className={`mt-3 flex gap-2 rounded-lg px-3 py-2 text-[12px] ${compat.ok ? 'bg-ok-500/10 text-ok-400' : 'bg-raised text-muted'}`}>
           {compat.ok ? <CheckCircle2 size={14} className="mt-0.5 shrink-0" /> : <Triangle size={13} className="mt-0.5 shrink-0 text-warn-400" />}
           <span>
@@ -158,7 +160,7 @@ export function RunPanel() {
             <button className="btn-danger flex-1" onClick={stopTraining}><Square size={13} /> Stop</button>
           </div>
         ) : (
-          <button className="btn-primary h-10 w-full text-[14px]" onClick={startTraining} disabled={!net.valid}>
+          <button className="btn-primary h-10 w-full text-[14px]" data-tour="train-button" onClick={startTraining} disabled={!net.valid}>
             <Play size={15} fill="currentColor" /> {status === 'paused' ? 'Resume training' : history ? 'Continue training' : 'Train'}
           </button>
         )}

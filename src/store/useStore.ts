@@ -10,7 +10,12 @@ import { autoLayout, extractChain, makeEdge, makeNode, type LayerNode } from './
 
 export type ViewName = 'graph' | 'architecture' | 'training' | 'inference' | 'debug' | 'dataset';
 export type LogLevel = 'info' | 'warn' | 'error' | 'success';
-export type Modal = 'templates' | 'load' | 'export' | null;
+export type Modal = 'templates' | 'load' | 'export' | 'tutorials' | null;
+export type RightTab = 'inspect' | 'run';
+export interface TutorialProgress {
+  id: string;
+  step: number;
+}
 
 export interface LogEntry {
   id: number;
@@ -92,7 +97,8 @@ export interface AppState {
   mode: 'beginner' | 'expert';
   theme: 'dark' | 'light';
   modal: Modal;
-  walkthrough: number | null;
+  tutorial: TutorialProgress | null;
+  rightTab: RightTab;
   config: NetworkConfig;
   logs: LogEntry[];
   training: TrainingState;
@@ -109,7 +115,8 @@ export interface AppState {
   setMode(m: AppState['mode']): void;
   toggleTheme(): void;
   setModal(m: Modal): void;
-  setWalkthrough(step: number | null): void;
+  setTutorial(t: TutorialProgress | null): void;
+  setRightTab(t: RightTab): void;
   setName(n: string): void;
   select(id: string | null): void;
 
@@ -171,7 +178,8 @@ export const useStore = create<AppState>()((set, get) => {
     mode: 'beginner',
     theme: 'dark',
     modal: null,
-    walkthrough: null,
+    tutorial: null,
+    rightTab: 'inspect',
     config: { ...defaultConfig(), train: { ...DEFAULT_TRAIN, ...TEMPLATES[0].train } },
     logs: [],
     training: emptyTraining(),
@@ -189,7 +197,8 @@ export const useStore = create<AppState>()((set, get) => {
     setMode: (mode) => set({ mode }),
     toggleTheme: () => set((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
     setModal: (modal) => set({ modal }),
-    setWalkthrough: (walkthrough) => set({ walkthrough }),
+    setTutorial: (tutorial) => set({ tutorial }),
+    setRightTab: (rightTab) => set({ rightTab }),
     setName: (networkName) => set({ networkName, dirty: true }),
     select: (selectedId) => set({ selectedId }),
 

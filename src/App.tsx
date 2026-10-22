@@ -8,6 +8,8 @@ import { TemplateModal } from './components/shell/TemplateModal';
 import { TopBar } from './components/shell/TopBar';
 import { useShortcuts } from './components/shell/useShortcuts';
 import { TOUR_KEY, Walkthrough } from './components/shell/Walkthrough';
+import { TutorialsModal } from './components/shell/TutorialsModal';
+import { startTutorial } from './data/tutorials';
 import { ArchitectureView } from './components/views/ArchitectureView';
 import { DatasetView } from './components/views/DatasetView';
 import { DebugView } from './components/views/DebugView';
@@ -38,7 +40,7 @@ export default function App() {
   useEffect(() => {
     const s = useStore.getState();
     s.log('info', 'Gneural workbench ready. Press Space to train the current network.', 'app');
-    if (!localStorage.getItem(TOUR_KEY)) s.setWalkthrough(0);
+    if (!localStorage.getItem(TOUR_KEY)) startTutorial('tour');
     const warn = (e: BeforeUnloadEvent) => {
       if (useStore.getState().dirty) e.preventDefault();
     };
@@ -66,6 +68,7 @@ export default function App() {
       {modal === 'templates' && <TemplateModal />}
       {modal === 'load' && <LoadModal />}
       {modal === 'export' && <ExportModal />}
+      {modal === 'tutorials' && <TutorialsModal />}
       <Walkthrough />
     </div>
   );

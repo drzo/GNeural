@@ -1,4 +1,4 @@
-import { Boxes, Bug, ChartLine, Database, Download, FilePlus as FilePlus2, FolderOpen, Gauge, GitBranch, LayoutTemplate, Loader as Loader2, Moon, Network, Pause, Play, Redo2, Save, Square, Sun, Undo2 } from 'lucide-react';
+import { Boxes, Bug, ChartLine, Database, Download, FilePlus as FilePlus2, FolderOpen, Gauge, GitBranch, GraduationCap, LayoutTemplate, Loader as Loader2, Moon, Network, Pause, Play, Redo2, Save, Square, Sun, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import { saveNetwork, startTraining, stopTraining, pauseTraining } from '../../store/actions';
 import { useStore, type ViewName } from '../../store/useStore';
@@ -51,7 +51,7 @@ export function TopBar() {
           <button className="icon-btn" onClick={save} disabled={saving}>{saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}</button>
         </Tooltip>
         <Tooltip content="Open a saved network" side="bottom"><button className="icon-btn" onClick={() => s.setModal('load')}><FolderOpen size={16} /></button></Tooltip>
-        <Tooltip content="Export as JSON or a Geometry Dash level" side="bottom"><button className="icon-btn" onClick={() => s.setModal('export')}><Download size={16} /></button></Tooltip>
+        <Tooltip content="Export as JSON or a Geometry Dash level" side="bottom"><button className="icon-btn" data-tour="export-button" onClick={() => s.setModal('export')}><Download size={16} /></button></Tooltip>
         <span className="mx-1 h-5 w-px bg-line" />
         <Tooltip content="Undo (Ctrl+Z)" side="bottom"><button className="icon-btn" onClick={s.undo} disabled={!s.past.length}><Undo2 size={16} /></button></Tooltip>
         <Tooltip content="Redo (Ctrl+Shift+Z)" side="bottom"><button className="icon-btn" onClick={s.redo} disabled={!s.future.length}><Redo2 size={16} /></button></Tooltip>
@@ -64,6 +64,7 @@ export function TopBar() {
             <Tooltip key={v.id} content={v.hint} side="bottom" disabled={!beginner}>
               <button
                 onClick={() => s.setView(v.id)}
+                data-tour={`view-${v.id}`}
                 className={`relative flex h-8 items-center gap-1.5 rounded-lg px-3 text-[13px] font-medium transition-all ${
                   active ? 'bg-raised text-fg shadow-sm' : 'text-faint hover:text-muted'
                 }`}
@@ -93,6 +94,11 @@ export function TopBar() {
             {paused && <button className="btn-danger" onClick={stopTraining}><Square size={13} /></button>}
           </div>
         )}
+        <Tooltip content="Tutorials and the guided tour" side="bottom">
+          <button className="btn-ghost h-8 px-2.5 text-[13px]" data-tour="tutorials-button" onClick={() => s.setModal('tutorials')}>
+            <GraduationCap size={15} /> Learn
+          </button>
+        </Tooltip>
         <Segmented
           size="sm"
           value={s.mode}

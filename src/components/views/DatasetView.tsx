@@ -77,7 +77,7 @@ export function DatasetView() {
   return (
     <div className="flex h-full">
       <div className="w-[320px] shrink-0 space-y-5 overflow-y-auto border-r border-line p-5">
-        <div>
+        <div data-tour="dataset-list">
           <div className="label mb-2">Datasets</div>
           <div className="space-y-1.5">
             {BUILTIN_DATASETS.map((d) => {
@@ -109,7 +109,7 @@ export function DatasetView() {
           )}
         </div>
 
-        <div>
+        <div data-tour="dataset-splits">
           <div className="label mb-3">Train / validation / test split</div>
           <div className="mb-3 flex h-2.5 overflow-hidden rounded-full">
             <div className="bg-brand-500 transition-all" style={{ width: `${config.splits.train * 100}%` }} />
@@ -140,7 +140,7 @@ export function DatasetView() {
           )}
         </div>
 
-        <div>
+        <div data-tour="dataset-augmentation">
           <div className="label mb-1">Augmentation</div>
           <p className="mb-3 text-[11px] text-faint">Random changes applied to training samples so the network generalizes better.</p>
           <div className="space-y-2.5">
