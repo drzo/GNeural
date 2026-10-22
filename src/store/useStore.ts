@@ -100,6 +100,7 @@ export interface AppState {
   tutorial: TutorialProgress | null;
   rightTab: RightTab;
   libraryVersion: number;
+  unlinkedRunIds: string[];
   config: NetworkConfig;
   logs: LogEntry[];
   training: TrainingState;
@@ -183,6 +184,7 @@ export const useStore = create<AppState>()((set, get) => {
     tutorial: null,
     rightTab: 'inspect',
     libraryVersion: 0,
+    unlinkedRunIds: [],
     config: { ...defaultConfig(), train: { ...DEFAULT_TRAIN, ...TEMPLATES[0].train } },
     logs: [],
     training: emptyTraining(),
@@ -305,7 +307,7 @@ export const useStore = create<AppState>()((set, get) => {
       commit({
         nodes, edges, selectedId: null, networkId: null, networkName: t.name, modal: null,
         config: { ...defaultConfig(), datasetId: t.datasetId, train: { ...DEFAULT_TRAIN, ...t.train } },
-        model: null, modelSignature: '', pendingWeights: null, training: emptyTraining(), run: null,
+        model: null, modelSignature: '', pendingWeights: null, training: emptyTraining(), run: null, unlinkedRunIds: [],
       });
       get().log('success', `Loaded template "${t.name}" with ${nodes.length} layers`, 'templates');
     },
@@ -315,7 +317,7 @@ export const useStore = create<AppState>()((set, get) => {
       commit({
         nodes: [input], edges: [], selectedId: input.id, networkId: null, networkName: 'Untitled network',
         config: { ...defaultConfig(), datasetId: 'xor' }, model: null, modelSignature: '', pendingWeights: null,
-        training: emptyTraining(), run: null,
+        training: emptyTraining(), run: null, unlinkedRunIds: [],
       });
       get().log('info', 'Started a new network', 'app');
     },
@@ -324,7 +326,7 @@ export const useStore = create<AppState>()((set, get) => {
       set({
         networkId: n.id, networkName: n.name, nodes: n.nodes, edges: n.edges, config: n.config, selectedId: null,
         past: [], future: [], dirty: false, model: null, modelSignature: '', pendingWeights: n.weights,
-        training: emptyTraining(), run: null,
+        training: emptyTraining(), run: null, unlinkedRunIds: [],
       });
     },
     setTraining: (patch) => set((s) => ({ training: { ...s.training, ...patch } })),

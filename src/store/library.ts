@@ -26,6 +26,7 @@ export interface RunPoint {
 
 export interface TrainingRunRow {
   id: string;
+  network_name: string;
   engine: 'workbench' | 'gneural';
   dataset_id: string;
   epochs: number;
@@ -115,34 +116,63 @@ export async function deleteDatasetFile(f: DatasetFile) {
   get().bumpLibrary();
 }
 
+const RUN_COLUMNS = 'id, network_name, engine, dataset_id, epochs, final_train_loss, final_val_loss, best_val_acc, duration_seconds, status, history, created_at';
+
+const normalizeRuns = (data: unknown[] | null) =>
+  ((data ?? []) as TrainingRunRow[]).map((r) => ({ ...r, history: Array.isArray(r.history) ? r.history : [] }));
+
 export async function listRuns(networkId: string): Promise<TrainingRunRow[]> {
   const { data, error } = await requireDb()
     .from('training_runs')
-    .select('id, engine, dataset_id, epochs, final_train_loss, final_val_loss, best_val_acc, duration_seconds, status, history, created_at')
+    .select(RUN_COLUMNS)
     .eq('network_id', networkId)
     .order('created_at', { ascending: false })
     .limit(50);
   if (error) fail('list runs failed', error, 'Could not load the training history.');
-  return ((data ?? []) as TrainingRunRow[]).map((r) => ({ ...r, history: Array.isArray(r.history) ? r.history : [] }));
+  return normalizeRuns(data);
+}
+
+export async function listRunsByIds(ids: string[]): Promise<TrainingRunRow[]> {
+  if (!ids.length) return [];
+  const { data, error } = await requireDb()
+    .from('training_runs')
+    .select(RUN_COLUMNS)
+    .in('id', ids)
+    .order('created_at', { ascending: false });
+  if (error) fail('list runs failed', error, 'Could not load the training history.');
+  return normalizeRuns(data);
+}
+
+/** Attaches runs recorded before the network was first saved. */
+export async function linkUnsavedRuns(networkId: string) {
+  const ids = get().unlinkedRunIds;
+  if (!ids.length) return;
+  const { error } = await requireDb().from('training_runs').update({ network_id: networkId }).in('id', ids).is('network_id', null);
+  if (error) {
+    console.error('link runs failed', error);
+    get().log('warn', 'Could not attach earlier training runs to this network', 'history');
+    return;
+  }
+  useStore.setState({ unlinkedRunIds: [] });
+  get().log('info', `Attached ${ids.length} earlier training run${ids.length === 1 ? '' : 's'} to this network`, 'history');
+  get().bumpLibrary();
 }
 
 export async function deleteRun(id: string) {
   const { error } = await requireDb().from('training_runs').delete().eq('id', id);
   if (error) fail('delete run failed', error, 'Could not delete that run.');
+  useStore.setState((s) => ({ unlinkedRunIds: s.unlinkedRunIds.filter((x) => x !== id) }));
   get().bumpLibrary();
 }
 
 const finite = (v: number | null | undefined) => (v !== null && v !== undefined && Number.isFinite(v) ? v : null);
 
-/** Saves the epochs produced since `fromIndex` as one run of the current saved network. */
-export async function recordRun(fromIndex: number, status: 'done' | 'stopped', startedAt: number) {
+/** Saves the epochs produced since `fromIndex` as one training run. */
+export async function recordRun(fromIndex: number, status: 'done' | 'stopped', startedAt: number, size: { layers: number; params: number }) {
   const s = get();
   const epochs = s.training.history.slice(fromIndex);
   if (!epochs.length) return;
-  if (!s.networkId) {
-    s.log('info', 'Save this network to keep a history of its training runs', 'history');
-    return;
-  }
+  const networkId = s.networkId;
   const last = epochs[epochs.length - 1];
   const accs = epochs.map((e) => e.valAcc).filter((v): v is number => v !== null && Number.isFinite(v));
   const step = Math.max(1, Math.ceil(epochs.length / 200));
@@ -150,8 +180,11 @@ export async function recordRun(fromIndex: number, status: 'done' | 'stopped', s
     .filter((_, i) => i % step === 0 || i === epochs.length - 1)
     .map((e) => ({ epoch: e.epoch, trainLoss: finite(e.trainLoss) ?? 0, valLoss: finite(e.valLoss) ?? 0, valAcc: finite(e.valAcc) }));
   try {
-    const { error } = await requireDb().from('training_runs').insert({
-      network_id: s.networkId,
+    const { data, error } = await requireDb().from('training_runs').insert({
+      network_id: networkId,
+      network_name: (s.networkName.trim() || 'Untitled network').slice(0, 200),
+      layer_count: size.layers,
+      param_count: size.params,
       engine: s.training.engine,
       dataset_id: s.config.datasetId,
       epochs: epochs.length,
@@ -162,12 +195,22 @@ export async function recordRun(fromIndex: number, status: 'done' | 'stopped', s
       status,
       history,
       config: s.config.train,
-    });
+    }).select('id').maybeSingle();
     if (error) throw error;
-    get().log('success', `Recorded training run (${epochs.length} epoch${epochs.length === 1 ? '' : 's'}) in this network's history`, 'history');
+    if (!data) throw new Error('No run id returned');
+    const n = `${epochs.length} epoch${epochs.length === 1 ? '' : 's'}`;
+    if (!networkId) {
+      useStore.setState((st) => ({ unlinkedRunIds: [...st.unlinkedRunIds, data.id] }));
+      get().log('success', `Saved training run (${n}). Save the network to keep it in the network's history.`, 'history');
+    } else {
+      get().log('success', `Saved training run (${n}) to this network's history`, 'history');
+    }
     get().bumpLibrary();
   } catch (e) {
     console.error('record run failed', e);
     get().log('warn', 'Could not save this training run to the history', 'history');
   }
 }
+
+
+export { linkUnsavedRuns, recordRun }

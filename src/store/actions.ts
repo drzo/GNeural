@@ -6,7 +6,7 @@ import type { Sample } from '../engine/types';
 import { applyGneuralWeights, gneuralCompatibility, runGneural, toGneuralWeights } from '../gd/bridge';
 import type { Sample as GdSample } from '../gd/protocol';
 import { requireDb } from '../lib/supabase';
-import { recordRun } from './library';
+import { linkUnsavedRuns, recordRun } from './library';
 import type { LayerNode } from './graph';
 import { computeNetwork, type NetworkInfo } from './useNetwork';
 import { defaultConfig, useStore, type NetworkConfig } from './useStore';
@@ -101,7 +101,7 @@ export function startTraining() {
     get().setRun(null);
     if (result === 'done') get().log('success', 'Training complete', 'trainer');
     if (result === 'stopped') get().log('warn', 'Training stopped', 'trainer');
-    if (result === 'done' || result === 'stopped') void recordRun(runStart.index, result, runStart.at);
+    if (result === 'done' || result === 'stopped') void recordRun(runStart.index, result, runStart.at, { layers: net.chain.length, params: net.totalParams });
   });
 }
 
@@ -147,7 +147,7 @@ function trainWithGneural(net: NetworkInfo, model: Model, train: Sample[], val: 
   job.done.then(() => {
     get().setTraining({ status: 'idle' });
     get().setRun(null);
-    void recordRun(runStart.index, stopped ? 'stopped' : 'done', runStart.at);
+    void recordRun(runStart.index, stopped ? 'stopped' : 'done', runStart.at, { layers: net.chain.length, params: net.totalParams });
   });
 }
 
@@ -223,6 +223,7 @@ export async function saveNetwork(asNew = false) {
     if (!data) throw new Error('The network could not be found. It may have been deleted.');
     useStore.setState({ networkId: data.id, dirty: false });
     s.log('success', `Saved "${row.name}"${row.weights ? ' with trained weights' : ''}`, 'storage');
+    void linkUnsavedRuns(data.id);
     return true;
   } catch (e) {
     s.log('error', `Save failed: ${(e as Error).message}`, 'storage');

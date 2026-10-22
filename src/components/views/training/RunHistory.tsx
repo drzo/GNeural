@@ -1,7 +1,7 @@
 import { Factory as History, Loader as Loader2, Trash as Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { num, pct } from '../../../lib/format';
-import { deleteRun, listRuns, type RunPoint, type TrainingRunRow } from '../../../store/library';
+import { deleteRun, listRuns, listRunsByIds, type RunPoint, type TrainingRunRow } from '../../../store/library';
 import { useStore } from '../../../store/useStore';
 
 function Spark({ points }: { points: RunPoint[] }) {
@@ -23,6 +23,7 @@ const dur = (s: number) => (s < 60 ? `${s.toFixed(1)}s` : `${Math.floor(s / 60)}
 
 export function RunHistory() {
   const networkId = useStore((s) => s.networkId);
+  const unlinked = useStore((s) => s.unlinkedRunIds);
   const version = useStore((s) => s.libraryVersion);
   const log = useStore((s) => s.log);
   const [runs, setRuns] = useState<TrainingRunRow[] | null>(null);
@@ -30,14 +31,13 @@ export function RunHistory() {
   const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!networkId) return;
     let live = true;
     setError(null);
-    listRuns(networkId)
+    (networkId ? listRuns(networkId) : listRunsByIds(unlinked))
       .then((r) => live && setRuns(r))
       .catch((e: Error) => live && setError(e.message));
     return () => { live = false; };
-  }, [networkId, version]);
+  }, [networkId, unlinked, version]);
 
   const remove = async (id: string) => {
     setDeleting(id);
@@ -55,21 +55,22 @@ export function RunHistory() {
       <div className="mb-3 flex items-center gap-2">
         <History size={14} className="text-brand-400" />
         <h3 className="text-[13px] font-semibold">Run history</h3>
-        {networkId && runs && <span className="text-[11px] text-faint">{runs.length} saved run{runs.length === 1 ? '' : 's'}</span>}
+        {runs && <span className="text-[11px] text-faint">{runs.length} saved run{runs.length === 1 ? '' : 's'}</span>}
         <span className="ml-auto flex items-center gap-3 text-[10px] text-faint">
           <span className="flex items-center gap-1"><span className="h-0.5 w-3 rounded bg-brand-500" /> train loss</span>
           <span className="flex items-center gap-1"><span className="h-0.5 w-3 rounded bg-warn-500" /> val loss</span>
         </span>
       </div>
 
-      {!networkId ? (
-        <p className="text-[12px] text-muted">Save this network to the cloud and every training session will be recorded here so you can compare results over time.</p>
-      ) : error ? (
+      {!networkId && runs && runs.length > 0 && (
+        <p className="mb-2 rounded-lg bg-warn-500/10 px-3 py-2 text-[12px] text-warn-400">These runs are saved, but this network is not. Save the network to keep them in its history.</p>
+      )}
+      {error ? (
         <p className="rounded-lg bg-bad-500/10 px-3 py-2 text-[12px] text-bad-400">{error}</p>
       ) : !runs ? (
         <div className="space-y-1.5">{[0, 1].map((i) => <div key={i} className="h-12 animate-pulse rounded-lg bg-raised" />)}</div>
       ) : !runs.length ? (
-        <p className="text-[12px] text-muted">No runs yet. Finished or stopped training sessions for this network appear here automatically.</p>
+        <p className="text-[12px] text-muted">No runs yet. Every finished or stopped training session is saved here automatically.</p>
       ) : (
         <div className="divide-y divide-line/60">
           {runs.map((r, i) => (
