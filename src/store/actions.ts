@@ -13,6 +13,14 @@ import { defaultConfig, useStore, type NetworkConfig } from './useStore';
 
 const get = useStore.getState;
 
+/** Keeps backend error detail in the browser console and gives the user a safe message. */
+class SafeError extends Error {}
+
+function safeMessage(context: string, cause: unknown, fallback: string) {
+  console.error(context, cause);
+  return cause instanceof SafeError ? cause.message : fallback;
+}
+
 function signature(net: NetworkInfo) {
   return JSON.stringify(net.chain.map((c, i) => [c.id, c.type, c.params, net.analysis[i].inShape, net.analysis[i].outShape]));
 }
@@ -220,13 +228,13 @@ export async function saveNetwork(asNew = false) {
       : db.from('networks').insert(row).select('id').maybeSingle();
     const { data, error } = await query;
     if (error) throw error;
-    if (!data) throw new Error('The network could not be found. It may have been deleted.');
+    if (!data) throw new SafeError('The network could not be found. It may have been deleted.');
     useStore.setState({ networkId: data.id, dirty: false });
     s.log('success', `Saved "${row.name}"${row.weights ? ' with trained weights' : ''}`, 'storage');
     void linkUnsavedRuns(data.id);
     return true;
   } catch (e) {
-    s.log('error', `Save failed: ${(e as Error).message}`, 'storage');
+    s.log('error', `Save failed: ${safeMessage('save network failed', e, 'Could not save the network. Please try again.')}`, 'storage');
     return false;
   }
 }
@@ -237,7 +245,7 @@ export async function listNetworks(): Promise<NetworkRow[]> {
     .select('id, name, description, layer_count, param_count, updated_at')
     .order('updated_at', { ascending: false })
     .limit(100);
-  if (error) throw error;
+  if (error) throw new SafeError(safeMessage('list networks failed', error, 'Could not load your saved networks.'));
   return (data ?? []) as NetworkRow[];
 }
 
@@ -246,9 +254,9 @@ export async function loadNetwork(id: string) {
   try {
     const { data, error } = await requireDb().from('networks').select('*').eq('id', id).maybeSingle();
     if (error) throw error;
-    if (!data) throw new Error('Network not found');
+    if (!data) throw new SafeError('Network not found');
     const graph = data.graph as SavedGraph | null;
-    if (!graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) throw new Error('The saved graph is malformed');
+    if (!graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) throw new SafeError('The saved graph is malformed');
     const base = defaultConfig();
     const cfg = (data.config ?? {}) as Partial<NetworkConfig>;
     s.replaceNetwork({
@@ -262,13 +270,13 @@ export async function loadNetwork(id: string) {
     s.setModal(null);
     s.log('success', `Loaded "${data.name}"`, 'storage');
   } catch (e) {
-    s.log('error', `Load failed: ${(e as Error).message}`, 'storage');
+    s.log('error', `Load failed: ${safeMessage('load network failed', e, 'Could not open that network. Please try again.')}`, 'storage');
   }
 }
 
 export async function deleteNetwork(id: string) {
   const { error } = await requireDb().from('networks').delete().eq('id', id);
-  if (error) throw error;
+  if (error) throw new SafeError(safeMessage('delete network failed', error, 'Could not delete that network. Please try again.'));
   if (get().networkId === id) useStore.setState({ networkId: null, dirty: true });
 }
 
